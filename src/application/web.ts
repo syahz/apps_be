@@ -11,9 +11,13 @@ export const web = express()
 
 web.set('trust proxy', 1)
 
-const allowedOrigins = [FRONTEND_URL, 'https://apps.bmuconnect.id', 'https://brawijayamultiusaha.co.id', 'https://guestbook.bmuconnect.id'].filter(
-  Boolean
-)
+const allowedOrigins = [
+  FRONTEND_URL,
+  'https://apps.bmuconnect.id',
+  'https://brawijayamultiusaha.co.id',
+  'https://guestbook.bmuconnect.id',
+  'http://localhost:3000'
+].filter(Boolean)
 
 const corsOptions = {
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
