@@ -48,7 +48,7 @@ model PublicationEng {
 
 model CategoryArticle {
   id   String @id @default(uuid())
-  name String
+  name String @unique
 
   publicationsIdn PublicationIdn[] @relation("PublicationIdnCategories")
   publicationsEng PublicationEng[] @relation("PublicationEngCategories")

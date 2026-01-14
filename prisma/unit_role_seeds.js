@@ -92,11 +92,15 @@ async function seedDivisions() {
 async function seedCategories() {
   console.log('Seeding categories...')
   for (const categoryData of categoriesToSeed) {
-    await prisma.categoryArticle.upsert({
-      where: { name: categoryData.name },
-      update: {},
-      create: { name: categoryData.name }
+    const category = await prisma.categoryArticle.findFirst({
+      where: { name: categoryData.name }
     })
+
+    if (!category) {
+      await prisma.categoryArticle.create({
+        data: { name: categoryData.name }
+      })
+    }
   }
   console.log('Categories seeded successfully.')
 }
