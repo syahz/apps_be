@@ -35,6 +35,8 @@ export type PublicationResponse = {
   content: string
   type: PublicationKindResponse
   date: Date
+  image: string | null
+  image_og: string | null
   created_at: Date
   updated_at: Date
   language: SupportedPublicationLanguage
@@ -71,6 +73,8 @@ export function toPublicationResponse(publication: PublicationWithCategories, la
     content: publication.content,
     type: mapPublicationType(publication.type),
     date: publication.date,
+    image: (publication as any).bannerImage ?? null,
+    image_og: (publication as any).ogImage ?? null,
     created_at: publication.createdAt,
     updated_at: publication.updatedAt,
     language,

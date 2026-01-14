@@ -13,3 +13,5 @@
 2026-01-14 10:35:25 error: JWT verify error: jwt expired
 2026-01-14 12:01:09 error: JWT verify error: jwt expired
 2026-01-14 12:57:58 error: JWT verify error: jwt expired
+2026-01-14 13:03:36 error: JWT verify error: pool timeout: failed to retrieve a connection from pool after 10014ms
+    (pool connections: active=0 idle=0 limit=10)
