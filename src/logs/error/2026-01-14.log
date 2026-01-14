@@ -1,0 +1,35 @@
+2026-01-14 08:30:34 error: Translate article gagal (Gemini) Request failed with status code 404
+2026-01-14 08:31:42 error: Translate article gagal (Gemini) Request failed with status code 404
+2026-01-14 08:36:51 error: uncaughtException: genai_1.GoogleGenerativeAI is not a constructor
+TypeError: genai_1.GoogleGenerativeAI is not a constructor
+    at Object.<anonymous> (D:\BMU\APPS BMU\BE\src\services\article-services.ts:20:39)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1688:14)
+    at Module._compile (D:\BMU\APPS BMU\BE\node_modules\source-map-support\source-map-support.js:521:25)
+    at Module.m._compile (C:\Users\DWIAJU~1\AppData\Local\Temp\ts-node-dev-hook-5369688740371927.js:69:33)
+    at node:internal/modules/cjs/loader:1820:10
+    at require.extensions..jsx.require.extensions..js (C:\Users\DWIAJU~1\AppData\Local\Temp\ts-node-dev-hook-5369688740371927.js:114:20)
+    at require.extensions.<computed> (C:\Users\DWIAJU~1\AppData\Local\Temp\ts-node-dev-hook-5369688740371927.js:71:20)
+    at Object.nodeDevHook [as .ts] (D:\BMU\APPS BMU\BE\node_modules\ts-node-dev\lib\hook.js:63:13)
+    at Module.load (node:internal/modules/cjs/loader:1423:32)
+    at Function._load (node:internal/modules/cjs/loader:1246:12)
+2026-01-14 08:38:48 error: uncaughtException: genai_1.GoogleGenerativeAI is not a constructor
+TypeError: genai_1.GoogleGenerativeAI is not a constructor
+    at Object.<anonymous> (D:\BMU\APPS BMU\BE\src\services\article-services.ts:20:39)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1688:14)
+    at Module._compile (D:\BMU\APPS BMU\BE\node_modules\source-map-support\source-map-support.js:521:25)
+    at Module.m._compile (C:\Users\DWIAJU~1\AppData\Local\Temp\ts-node-dev-hook-5369688740371927.js:69:33)
+    at node:internal/modules/cjs/loader:1820:10
+    at require.extensions..jsx.require.extensions..js (C:\Users\DWIAJU~1\AppData\Local\Temp\ts-node-dev-hook-5369688740371927.js:114:20)
+    at require.extensions.<computed> (C:\Users\DWIAJU~1\AppData\Local\Temp\ts-node-dev-hook-5369688740371927.js:71:20)
+    at Object.nodeDevHook [as .ts] (D:\BMU\APPS BMU\BE\node_modules\ts-node-dev\lib\hook.js:63:13)
+    at Module.load (node:internal/modules/cjs/loader:1423:32)
+    at Function._load (node:internal/modules/cjs/loader:1246:12)
+2026-01-14 08:43:05 error: Translate article gagal (Gemini) [GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent: [404 Not Found] models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.
+2026-01-14 08:44:38 error: Translate article gagal (Gemini) [GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent: [404 Not Found] models/gemini-1.5-flash-latest is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.
+2026-01-14 08:53:46 error: JWT verify error: jwt expired
+2026-01-14 08:59:31 error: Translate article gagal (Gemini) Respons Gemini tidak memiliki field title/content
+2026-01-14 08:59:51 error: Translate article gagal (Gemini) Respons Gemini tidak memiliki field title/content
+2026-01-14 09:11:08 error: JWT verify error: jwt expired
+2026-01-14 09:31:26 error: JWT verify error: jwt expired
+2026-01-14 10:01:53 error: JWT verify error: jwt expired
+2026-01-14 10:35:25 error: JWT verify error: jwt expired

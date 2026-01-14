@@ -1,0 +1,107 @@
+// ge/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+enum PublicationType {
+  NEWS
+  ARTICLE
+}
+
+// Models for company profile and publications in Indonesian and English
+model PublicationIdn {
+  id        String           @id @default(uuid())
+  slug      String           @unique
+  title     String
+  content   String           @db.LongText
+  type      PublicationType
+  date      DateTime
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  categories CategoryArticle[] @relation("PublicationIdnCategories")
+  @@map("publications_idn")
+}
+
+model PublicationEng {
+  id        String           @id @default(uuid())
+  slug      String           @unique
+  title     String
+  content   String           @db.LongText
+  type      PublicationType
+  date      DateTime
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  categories CategoryArticle[] @relation("PublicationEngCategories")
+  @@map("publications_eng")
+}
+
+model CategoryArticle {
+  id   String @id @default(uuid())
+  name String
+
+  publicationsIdn PublicationIdn[] @relation("PublicationIdnCategories")
+  publicationsEng PublicationEng[] @relation("PublicationEngCategories")
+  @@map("category_articles")
+}
+
+
+// Models for Admin Panel with Users, Roles, Divisions, Units, and Refresh Tokens
+model User {
+  id                String      @id @default(uuid())
+  name              String
+  email             String      @unique
+  roleId            String
+  unitId            String
+  divisionId        String?
+  role              Role        @relation(fields: [roleId], references: [id])
+  unit              Unit        @relation(fields: [unitId], references: [id])
+  division          Division?   @relation(fields: [divisionId], references: [id])
+  refreshTokens     RefreshToken[]
+
+  @@map("users")
+}
+
+model Role {
+  id         String @id @default(uuid())
+  name       String @unique
+  users      User[]
+
+  @@map("roles")
+}
+
+model Division {
+  id         String   @id @default(uuid())
+  name       String   @unique
+  users      User[]
+
+  @@map("divisions")
+}
+
+model Unit {
+  id                         String   @id @default(uuid())
+  code                       String   @unique
+  name                       String   @unique
+  users                      User[]
+  @@map("units")
+}
+
+// For Auth
+model RefreshToken {
+  id         String   @id @default(uuid())
+  user       User     @relation(fields: [userId], references: [id])
+  userId     String
+  tokenHash  String   @unique
+  revoked    Boolean  @default(false)
+  replacedBy String?
+  createdAt  DateTime @default(now())
+  expiresAt  DateTime
+
+  @@map("refresh_tokens")
+}

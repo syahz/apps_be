@@ -1,0 +1,30 @@
+{
+    "keep": {
+        "days": false,
+        "amount": 5
+    },
+    "auditLog": "D:\\BMU\\HR BMU\\BE\\src\\logs\\logininfo\\.1baeb4f5249f3a289976f8c7102ce902acfbe11e-audit.json",
+    "files": [
+        {
+            "date": 1766031999969,
+            "name": "D:\\BMU\\HR BMU\\BE\\src\\logs\\logininfo\\2025-12-18.log",
+            "hash": "73e338006a512bdba2672f3ab1a5be5ef603243ff45efb4a799feff2d038ebc7"
+        },
+        {
+            "date": 1766105371161,
+            "name": "D:\\BMU\\HR BMU\\BE\\src\\logs\\logininfo\\2025-12-19.log",
+            "hash": "6ceb3423d1ecc47fe4eee13233fbaf3c1ba510339dbd65267283542fb6f60db9"
+        },
+        {
+            "date": 1766367250326,
+            "name": "D:\\BMU\\HR BMU\\BE\\src\\logs\\logininfo\\2025-12-22.log",
+            "hash": "9de49a6593c21c6bccef043b4ecd76cab6a4f3a1cdbcddc7a2abd2ca786d72ac"
+        },
+        {
+            "date": 1766449331643,
+            "name": "D:\\BMU\\HR BMU\\BE\\src\\logs\\logininfo\\2025-12-23.log",
+            "hash": "6149026e031989cb0fd4554d60882b470d9507e7725d0ffa9759eaefeea32ba5"
+        }
+    ],
+    "hashType": "sha256"
+}

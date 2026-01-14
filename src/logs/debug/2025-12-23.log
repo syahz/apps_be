@@ -1,0 +1,8 @@
+2025-12-23 15:51:00 debug: Starting SSO login with code: 5fb06c0971b6d28e87af8f6ccdddb48d10d7392dfbded0eab7027170529e27a41c3e1e1738da53c823b8478b442461cc8bf22d8bcc3b63b128f158a3c28504a0
+2025-12-23 15:51:00 debug: Using PORTAL_API_URL: https://api.portal.bmuconnect.id/api
+2025-12-23 15:51:00 debug: Using CLIENT_ID: app_hrbmu
+2025-12-23 15:51:00 debug: Using CLIENT_SECRET: dbdfa8a6d55594bdca91987aaf3e5b05
+2025-12-23 15:51:00 debug: SSO token response received
+2025-12-23 15:51:00 debug: {"data":{"user":{"id":"83ffa7a2-c594-4dff-a347-213af68a753f","email":"admin@example.com","name":"Administrator","role":"Admin","unit_code":"HO","division_name":"IT Support"},"portal_refresh_expires_ts":"2026-01-22T08:48:50.549Z"}}
+2025-12-23 15:51:00 debug: Portal user extracted: {"id":"83ffa7a2-c594-4dff-a347-213af68a753f","email":"admin@example.com","name":"Administrator","role":"Admin","unit_code":"HO","division_name":"IT Support"}
+2025-12-23 15:51:01 debug: Local user upserted: {"id":"83ffa7a2-c594-4dff-a347-213af68a753f","name":"Administrator","email":"admin@example.com","roleId":"ac5ef875-5e6c-40b5-bcd1-ec675863dc53","unitId":"fca40211-d5f5-4926-bcc4-5c56f33222e5","divisionId":"e2b72f6e-d5bf-49f8-8817-bbb4a5d860d4"}

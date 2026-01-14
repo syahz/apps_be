@@ -1,0 +1,13 @@
+2026-01-14 08:30:34 error: Translate article gagal (Gemini) Request failed with status code 404
+2026-01-14 08:31:42 error: Translate article gagal (Gemini) Request failed with status code 404
+2026-01-14 08:43:05 error: Translate article gagal (Gemini) [GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent: [404 Not Found] models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.
+2026-01-14 08:44:38 error: Translate article gagal (Gemini) [GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent: [404 Not Found] models/gemini-1.5-flash-latest is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.
+2026-01-14 08:53:46 error: JWT verify error: jwt expired
+2026-01-14 08:59:31 warn: Gemini response format invalid:
+2026-01-14 08:59:31 error: Translate article gagal (Gemini) Respons Gemini tidak memiliki field title/content
+2026-01-14 08:59:51 warn: Gemini response format invalid:
+2026-01-14 08:59:51 error: Translate article gagal (Gemini) Respons Gemini tidak memiliki field title/content
+2026-01-14 09:11:08 error: JWT verify error: jwt expired
+2026-01-14 09:31:26 error: JWT verify error: jwt expired
+2026-01-14 10:01:53 error: JWT verify error: jwt expired
+2026-01-14 10:35:25 error: JWT verify error: jwt expired

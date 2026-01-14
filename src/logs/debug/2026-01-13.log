@@ -1,0 +1,81 @@
+2026-01-13 13:20:06 debug: Starting SSO login with code: 2591823bba88b68687ec82b243a5332429ca895be02d03d7250d56367ca78253ffcb24dc2618e4bcf0cc8703febef33f10672c0af30bc25d85c4a4324a42ddfb
+2026-01-13 13:20:06 debug: Using PORTAL_API_URL: https://api.portal.bmuconnect.id/api
+2026-01-13 13:20:06 debug: Using CLIENT_ID: apps_bmu
+2026-01-13 13:20:06 debug: Using CLIENT_SECRET: dbdfa8a6d55594bdca91987aaf3e5b05
+2026-01-13 13:20:06 debug: SSO token response received
+2026-01-13 13:20:06 debug: {"data":{"status":403}}
+2026-01-13 13:20:06 debug: Portal user extracted: undefined
+2026-01-13 13:20:06 error: Portal user missing in token response
+2026-01-13 13:20:52 debug: Starting SSO login with code: 2a681d57b9586acc76b3f990bba16821082c08c9460a25ae5e9e8a2df37dcd6fffaf62ac4f0a556fdf5d07b769d0fdb04d45d46af17131228ffa76c0066b09cb
+2026-01-13 13:20:52 debug: Using PORTAL_API_URL: https://api.portal.bmuconnect.id/api
+2026-01-13 13:20:52 debug: Using CLIENT_ID: apps_bmu
+2026-01-13 13:20:52 debug: Using CLIENT_SECRET: dbdfa8a6d55594bdca91987aaf3e5b05
+2026-01-13 13:20:52 debug: SSO token response received
+2026-01-13 13:20:52 debug: {"data":{"status":403}}
+2026-01-13 13:20:52 debug: Portal user extracted: undefined
+2026-01-13 13:20:52 error: Portal user missing in token response
+2026-01-13 13:28:51 debug: Starting SSO login with code: 1b3c208c69fde7c9cf4164d6a3836bd232bd81e724d1f155ffbaaa102ad6e13cefb59fb0d936a02e6cea3373d1de4aae186d8e19e9ee670ddb79da4c410bc3c3
+2026-01-13 13:28:51 debug: Using PORTAL_API_URL: https://api.portal.bmuconnect.id/api
+2026-01-13 13:28:51 debug: Using CLIENT_ID: apps_bmu
+2026-01-13 13:28:51 debug: Using CLIENT_SECRET: dbdfa8a6d55594bdca91987aaf3e5b05
+2026-01-13 13:28:51 debug: SSO token response received
+2026-01-13 13:28:51 debug: {"data":{"status":403}}
+2026-01-13 13:28:51 debug: Portal user extracted: undefined
+2026-01-13 13:28:51 error: Portal user missing in token response
+2026-01-13 13:29:05 debug: Starting SSO login with code: 5887c7e811b1d3b5bb513365c3924b58625ff5c2df4f3076a5a4d5a7748e9e2a07b54cd8f5b691f0bdf08e7098706e0736a8508736a0ef8abb31ce6cbba69ba7
+2026-01-13 13:29:05 debug: Using PORTAL_API_URL: https://api.portal.bmuconnect.id/api
+2026-01-13 13:29:05 debug: Using CLIENT_ID: apps_bmu
+2026-01-13 13:29:05 debug: Using CLIENT_SECRET: dbdfa8a6d55594bdca91987aaf3e5b05
+2026-01-13 13:29:05 debug: SSO token response received
+2026-01-13 13:29:05 debug: {"data":{"status":403}}
+2026-01-13 13:29:05 debug: Portal user extracted: undefined
+2026-01-13 13:29:05 error: Portal user missing in token response
+2026-01-13 13:35:09 debug: Starting SSO login with code: 38f7077e0c64038f0a2096de0d1a1f7b6f82064864c7719c36b8d9fb62caa0c33ed86f9b096ac255a7c6d70fc555bc3f2ae9a881dfb5d0175005aaeaf76dd790
+2026-01-13 13:35:09 debug: Using PORTAL_API_URL: https://api.portal.bmuconnect.id/api
+2026-01-13 13:35:09 debug: Using CLIENT_ID: apps_bmu
+2026-01-13 13:35:09 debug: Using CLIENT_SECRET: dbdfa8a6d55594bdca91987aaf3e5b05
+2026-01-13 13:35:10 debug: SSO token response received
+2026-01-13 13:35:10 debug: {"data":{"status":403}}
+2026-01-13 13:35:10 debug: Portal user extracted: undefined
+2026-01-13 13:35:10 error: Portal user missing in token response
+2026-01-13 13:35:15 debug: Starting SSO login with code: a5cfd1119c4c575d561a281069f01070e16b9cc098f811525b8b28e7795a8ba57af3571989ae9bf7b339ca4411b37c697b04ec12a1636dbd35a92c2d4a36a5ba
+2026-01-13 13:35:15 debug: Using PORTAL_API_URL: https://api.portal.bmuconnect.id/api
+2026-01-13 13:35:15 debug: Using CLIENT_ID: apps_bmu
+2026-01-13 13:35:15 debug: Using CLIENT_SECRET: dbdfa8a6d55594bdca91987aaf3e5b05
+2026-01-13 13:35:15 debug: SSO token response received
+2026-01-13 13:35:15 debug: {"data":{"status":403}}
+2026-01-13 13:35:15 debug: Portal user extracted: undefined
+2026-01-13 13:35:15 error: Portal user missing in token response
+2026-01-13 13:35:20 debug: Starting SSO login with code: ba3db6a420495c2faf95a3a0331625626ede78472163541d0f69282f3ac4bb2e1293fd2a5ba5deadd24e0265e885bea0a40698dd91250133b87d8ce5a9dcd36b
+2026-01-13 13:35:20 debug: Using PORTAL_API_URL: https://api.portal.bmuconnect.id/api
+2026-01-13 13:35:20 debug: Using CLIENT_ID: apps_bmu
+2026-01-13 13:35:20 debug: Using CLIENT_SECRET: dbdfa8a6d55594bdca91987aaf3e5b05
+2026-01-13 13:35:20 debug: SSO token response received
+2026-01-13 13:35:20 debug: {"data":{"status":403}}
+2026-01-13 13:35:20 debug: Portal user extracted: undefined
+2026-01-13 13:35:20 error: Portal user missing in token response
+2026-01-13 13:35:25 debug: Starting SSO login with code: 01163f801f9500301d5c7eb04dd5f27aff5d4d27c1da367a3d423bbd82e0e2dcdaa1bd40c76db4d7ed8f9af58c4d32ba81afd660af7f96a2271cbd3267eff29a
+2026-01-13 13:35:25 debug: Using PORTAL_API_URL: https://api.portal.bmuconnect.id/api
+2026-01-13 13:35:25 debug: Using CLIENT_ID: apps_bmu
+2026-01-13 13:35:25 debug: Using CLIENT_SECRET: dbdfa8a6d55594bdca91987aaf3e5b05
+2026-01-13 13:35:25 debug: SSO token response received
+2026-01-13 13:35:25 debug: {"data":{"status":403}}
+2026-01-13 13:35:25 debug: Portal user extracted: undefined
+2026-01-13 13:35:25 error: Portal user missing in token response
+2026-01-13 13:39:03 debug: Starting SSO login with code: eab8822f452d5ac56471620c4db59ffaa142eb188585700283660e7e2eae4e7d8f773eea604fba0c42e3f19c0cab9c76bcaf23ab8f7eac97531653020bad46f2
+2026-01-13 13:39:03 debug: Using PORTAL_API_URL: https://api.portal.bmuconnect.id/api
+2026-01-13 13:39:03 debug: Using CLIENT_ID: apps_bmu
+2026-01-13 13:39:03 debug: Using CLIENT_SECRET: dbdfa8a6d55594bdca91987aaf3e5b05
+2026-01-13 13:39:04 debug: SSO token response received
+2026-01-13 13:39:04 debug: {"data":{"status":403}}
+2026-01-13 13:39:04 debug: Portal user extracted: undefined
+2026-01-13 13:39:04 error: Portal user missing in token response
+2026-01-13 13:39:23 debug: Starting SSO login with code: d53fce4697d847c710944c36cdea8b3294ed9461bf17c0b369abe76a3860fa2dbf5094c1573cf078b56e778ee7b6785051205760673be93d0e24b7221e922af8
+2026-01-13 13:39:23 debug: Using PORTAL_API_URL: https://api.portal.bmuconnect.id/api
+2026-01-13 13:39:23 debug: Using CLIENT_ID: apps_bmu
+2026-01-13 13:39:23 debug: Using CLIENT_SECRET: dbdfa8a6d55594bdca91987aaf3e5b05
+2026-01-13 13:39:24 debug: SSO token response received
+2026-01-13 13:39:24 debug: {"data":{"status":403}}
+2026-01-13 13:39:24 debug: Portal user extracted: undefined
+2026-01-13 13:39:24 error: Portal user missing in token response
+2026-01-13 16:26:26 error: Translate article gagal (Gemini) Request failed with status code 404

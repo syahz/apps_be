@@ -1,0 +1,24 @@
+import { config } from 'dotenv'
+
+config({ path: '.env' })
+
+export const {
+  PORT,
+  SMTP_EMAIL,
+  SMTP_PASSWORD,
+  LOG_DIR,
+  SECRET_KEY,
+  FRONTEND_URL,
+  NODE_ENV,
+  REFRESH_TOKEN_SECRET_KEY,
+  ACCESS_TOKEN_SECRET,
+  COOKIE_DOMAIN,
+  BASE_URL,
+  CLIENT_ID,
+  CLIENT_SECRET,
+  PORTAL_API_URL,
+  CSRF_ENABLED,
+  GOOGLE_TRANSLATE_API_KEY,
+  GEMINI_API_KEY,
+  GEMINI_MODEL_NAME
+} = process.env
