@@ -1,6 +1,13 @@
 import { NextFunction, Request, Response } from 'express'
 import { CreatePublicationRequest, UpdatePublicationRequest, SupportedPublicationLanguage } from '../models/publication-model'
-import { createPublication, deletePublication, getPublicationById, getPublications, updatePublication } from '../services/publication-services'
+import {
+  createPublication,
+  deletePublication,
+  getPublicationById,
+  getPublications,
+  updatePublication,
+  getPublicationByIdForLandingPage
+} from '../services/publication-services'
 
 const uuidRegex = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/
 
@@ -83,6 +90,17 @@ export const details = async (req: Request, res: Response, next: NextFunction) =
 
     const language = parseLanguage(req.query.lang as string)
     const response = await getPublicationById(publicationId, language)
+    res.status(200).json({ data: response })
+  } catch (error) {
+    next(error)
+  }
+}
+
+export const detailLandingPage = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const slugPublication = String(req.params.slugPublication)
+    const language = parseLanguage(req.query.lang as string)
+    const response = await getPublicationByIdForLandingPage(slugPublication, language)
     res.status(200).json({ data: response })
   } catch (error) {
     next(error)

@@ -74,6 +74,25 @@ export const getPublicationById = async (publicationId: string, language: Suppor
   return toPublicationResponse(englishBySlug, 'en')
 }
 
+export const getPublicationByIdForLandingPage = async (
+  slugPublication: string,
+  language: SupportedPublicationLanguage = 'id'
+): Promise<PublicationResponse> => {
+  if (language === 'id') {
+    const publication = await prismaClient.publicationIdn.findUnique({ where: { slug: slugPublication }, include: { categories: true } })
+    if (!publication) {
+      throw new ResponseError(404, 'Publikasi tidak ditemukan')
+    }
+    return toPublicationResponse(publication, 'id')
+  } else {
+    const publication = await prismaClient.publicationEng.findUnique({ where: { slug: slugPublication }, include: { categories: true } })
+    if (!publication) {
+      throw new ResponseError(404, 'Publikasi versi Bahasa Inggris belum tersedia')
+    }
+    return toPublicationResponse(publication, 'en')
+  }
+}
+
 export const createPublication = async (request: CreatePublicationRequest): Promise<PublicationCreateOrUpdateResponse> => {
   const createRequest = Validation.validate(PublicationValidation.CREATE, request)
   const categoryIds = await ensureCategoriesExist(createRequest.category_ids)

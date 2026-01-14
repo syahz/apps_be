@@ -37,3 +37,35 @@ TypeError: genai_1.GoogleGenerativeAI is not a constructor
 2026-01-14 12:57:58 error: JWT verify error: jwt expired
 2026-01-14 13:03:36 error: JWT verify error: pool timeout: failed to retrieve a connection from pool after 10014ms
     (pool connections: active=0 idle=0 limit=10)
+2026-01-14 14:56:59 error: uncaughtException: Identifier 'englishBySlug' has already been declared
+D:\BMU\APPS BMU\BE\src\services\publication-services.ts:74
+    const englishBySlug = await database_1.prismaClient.publicationEng.findUnique({ where: { slug: basePublication.slug }, include: { categories: true } });
+          ^
+
+SyntaxError: Identifier 'englishBySlug' has already been declared
+    at wrapSafe (node:internal/modules/cjs/loader:1620:18)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1662:20)
+    at Module._compile (D:\BMU\APPS BMU\BE\node_modules\source-map-support\source-map-support.js:521:25)
+    at Module.m._compile (C:\Users\DWIAJU~1\AppData\Local\Temp\ts-node-dev-hook-8776787639458838.js:69:33)
+    at node:internal/modules/cjs/loader:1820:10
+    at require.extensions..jsx.require.extensions..js (C:\Users\DWIAJU~1\AppData\Local\Temp\ts-node-dev-hook-8776787639458838.js:114:20)
+    at require.extensions.<computed> (C:\Users\DWIAJU~1\AppData\Local\Temp\ts-node-dev-hook-8776787639458838.js:71:20)
+    at Object.nodeDevHook [as .ts] (D:\BMU\APPS BMU\BE\node_modules\ts-node-dev\lib\hook.js:63:13)
+    at Module.load (node:internal/modules/cjs/loader:1423:32)
+    at Function._load (node:internal/modules/cjs/loader:1246:12)
+2026-01-14 15:00:00 error: uncaughtException: ⨯ Unable to compile TypeScript:
+src/services/publication-services.ts(420,1): error TS1005: '}' expected.
+
+Error: ⨯ Unable to compile TypeScript:
+src/services/publication-services.ts(420,1): error TS1005: '}' expected.
+
+    at Object.<anonymous> (D:\BMU\APPS BMU\BE\src\services\publication-services.ts:1:7)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1688:14)
+    at Module._compile (D:\BMU\APPS BMU\BE\node_modules\source-map-support\source-map-support.js:521:25)
+    at Module.m._compile (C:\Users\DWIAJU~1\AppData\Local\Temp\ts-node-dev-hook-8776787639458838.js:69:33)
+    at node:internal/modules/cjs/loader:1820:10
+    at require.extensions..jsx.require.extensions..js (C:\Users\DWIAJU~1\AppData\Local\Temp\ts-node-dev-hook-8776787639458838.js:114:20)
+    at require.extensions.<computed> (C:\Users\DWIAJU~1\AppData\Local\Temp\ts-node-dev-hook-8776787639458838.js:71:20)
+    at Object.nodeDevHook [as .ts] (D:\BMU\APPS BMU\BE\node_modules\ts-node-dev\lib\hook.js:63:13)
+    at Module.load (node:internal/modules/cjs/loader:1423:32)
+    at Function._load (node:internal/modules/cjs/loader:1246:12)
