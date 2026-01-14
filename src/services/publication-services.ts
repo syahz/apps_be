@@ -1,3 +1,5 @@
+import fs from 'fs/promises'
+import path from 'path'
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai'
 import { PublicationType } from '@prisma/client'
 import { Validation } from '../validation/Validation'
@@ -77,6 +79,8 @@ export const createPublication = async (request: CreatePublicationRequest): Prom
   const categoryIds = await ensureCategoriesExist(createRequest.category_ids)
   const type = createRequest.type as PublicationType
   const slugIdn = await generateUniqueSlug(createRequest.title)
+  const bannerImage = createRequest.image
+  const ogImage = createRequest.image_og
 
   const translation = await translateToEnglish(createRequest.title, createRequest.content)
   const slugEng = await generateUniqueSlug(translation.title)
@@ -90,6 +94,8 @@ export const createPublication = async (request: CreatePublicationRequest): Prom
         content: createRequest.content,
         type,
         date: createRequest.date,
+        bannerImage,
+        ogImage,
         categories: { connect: categoryConnect }
       },
       include: { categories: true }
@@ -103,6 +109,8 @@ export const createPublication = async (request: CreatePublicationRequest): Prom
         content: translation.content,
         type,
         date: createRequest.date,
+        bannerImage,
+        ogImage,
         categories: { connect: categoryConnect }
       },
       include: { categories: true }
@@ -134,6 +142,9 @@ export const updatePublication = async (publicationId: string, request: UpdatePu
   const newContent = updateRequest.content ?? existingIdn.content
   const newDate = updateRequest.date ?? existingIdn.date
   const newType: PublicationType = updateRequest.type ?? existingIdn.type
+  const newBannerImage = updateRequest.image ?? existingIdn.bannerImage
+  const newOgImage = updateRequest.image_og ?? existingIdn.ogImage
+  const hasNewUpload = Boolean(updateRequest.image && updateRequest.image_og)
 
   const shouldRetranslate = Boolean(updateRequest.title || updateRequest.content)
   const englishBefore =
@@ -161,6 +172,8 @@ export const updatePublication = async (publicationId: string, request: UpdatePu
         content: newContent,
         type: newType,
         date: newDate,
+        bannerImage: newBannerImage,
+        ogImage: newOgImage,
         ...(categorySet && { categories: { set: categorySet } })
       },
       include: { categories: true }
@@ -175,6 +188,8 @@ export const updatePublication = async (publicationId: string, request: UpdatePu
             content: translation.content,
             type: newType,
             date: newDate,
+            bannerImage: newBannerImage,
+            ogImage: newOgImage,
             ...(categorySet && { categories: { set: categorySet } })
           },
           include: { categories: true }
@@ -187,6 +202,8 @@ export const updatePublication = async (publicationId: string, request: UpdatePu
             content: translation.content,
             type: newType,
             date: newDate,
+            bannerImage: newBannerImage,
+            ogImage: newOgImage,
             categories: { connect: fallbackCategorySet }
           },
           include: { categories: true }
@@ -194,6 +211,10 @@ export const updatePublication = async (publicationId: string, request: UpdatePu
 
     return { publicationIdn: updatedIdn, publicationEng: updatedEng }
   })
+
+  if (hasNewUpload) {
+    await deleteImageFiles([existingIdn.bannerImage, existingIdn.ogImage])
+  }
 
   return {
     idn: toPublicationResponse(publicationIdn, 'id'),
@@ -211,6 +232,8 @@ export const deletePublication = async (publicationId: string): Promise<{ messag
     prismaClient.publicationEng.deleteMany({ where: { OR: [{ id: publicationId }, { slug: publicationIdn.slug }] } }),
     prismaClient.publicationIdn.delete({ where: { id: publicationId } })
   ])
+
+  await deleteImageFiles([publicationIdn.bannerImage, publicationIdn.ogImage])
 
   return { message: 'Publikasi berhasil dihapus' }
 }
@@ -356,4 +379,22 @@ async function translateToEnglish(title: string, content: string): Promise<{ tit
 
     throw new ResponseError(502, `Gagal menerjemahkan publikasi: ${error?.message}`)
   }
+}
+
+async function deleteImageFiles(filePaths: Array<string | null | undefined>) {
+  await Promise.all(
+    filePaths.map(async (filePath) => {
+      if (!filePath) return
+
+      const absolutePath = path.isAbsolute(filePath) ? filePath : path.join(process.cwd(), filePath)
+
+      try {
+        await fs.unlink(absolutePath)
+      } catch (error: any) {
+        if (error?.code !== 'ENOENT') {
+          logger.warn('Gagal menghapus file gambar publikasi', { filePath, message: error?.message })
+        }
+      }
+    })
+  )
 }

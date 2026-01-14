@@ -8,6 +8,8 @@ export type CreatePublicationRequest = {
   content: string
   date: Date
   type: PublicationType
+  image: string
+  image_og: string
   category_ids: string[]
 }
 
@@ -16,6 +18,8 @@ export type UpdatePublicationRequest = {
   content?: string
   date?: Date
   type?: PublicationType
+  image: string
+  image_og: string
   category_ids?: string[]
 }
 

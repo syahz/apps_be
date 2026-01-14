@@ -20,7 +20,9 @@ export class PublicationValidation {
     content: z.string().min(1, 'Konten wajib diisi'),
     type: PublicationTypeSchema,
     date: z.coerce.date({ message: 'Tanggal tidak valid atau wajib diisi' }),
-    category_ids: PublicationValidation.CATEGORY_IDS
+    category_ids: PublicationValidation.CATEGORY_IDS,
+    image: z.string().min(1, 'Gambar publikasi wajib diisi'),
+    image_og: z.string().min(1, 'Gambar OpenGraph wajib diisi')
   })
 
   static readonly UPDATE = z
@@ -29,9 +31,15 @@ export class PublicationValidation {
       content: z.string().min(1, 'Konten tidak boleh kosong').optional(),
       type: PublicationTypeSchema.optional(),
       date: z.coerce.date({ message: 'Tanggal tidak valid' }).optional(),
-      category_ids: PublicationValidation.CATEGORY_IDS.optional()
+      category_ids: PublicationValidation.CATEGORY_IDS.optional(),
+      image: z.string().min(1, 'Gambar publikasi wajib diisi').optional(),
+      image_og: z.string().min(1, 'Gambar OpenGraph wajib diisi').optional()
     })
-    .refine((data) => data.title || data.content || data.date || data.type || (data.category_ids && data.category_ids.length > 0), {
-      message: 'Minimal satu field harus diisi untuk update'
-    })
+    .refine(
+      (data) =>
+        data.title || data.content || data.date || data.type || (data.category_ids && data.category_ids.length > 0) || data.image || data.image_og,
+      {
+        message: 'Minimal satu field harus diisi untuk update'
+      }
+    )
 }

@@ -8,6 +8,58 @@ function parseLanguage(lang?: string): SupportedPublicationLanguage {
   return lang === 'en' ? 'en' : 'id'
 }
 
+function parseCategoryIds(input: unknown): string[] | undefined {
+  if (Array.isArray(input)) {
+    return input.map(String)
+  }
+
+  if (typeof input === 'string') {
+    try {
+      const parsed = JSON.parse(input)
+      if (Array.isArray(parsed)) {
+        return parsed.map(String)
+      }
+    } catch (error) {
+      // fallback below
+    }
+
+    return input
+      .split(',')
+      .map((id) => id.trim())
+      .filter(Boolean)
+  }
+
+  return undefined
+}
+
+function buildCreatePayload(req: Request): CreatePublicationRequest {
+  const categoryIds = parseCategoryIds(req.body.category_ids) ?? []
+
+  return {
+    title: req.body.title,
+    content: req.body.content,
+    date: req.body.date,
+    type: req.body.type,
+    category_ids: categoryIds,
+    image: req.body.image,
+    image_og: req.body.image_og
+  }
+}
+
+function buildUpdatePayload(req: Request): UpdatePublicationRequest {
+  const categoryIds = parseCategoryIds(req.body.category_ids)
+
+  return {
+    title: req.body.title,
+    content: req.body.content,
+    date: req.body.date,
+    type: req.body.type,
+    category_ids: categoryIds,
+    image: req.body.image,
+    image_og: req.body.image_og
+  }
+}
+
 export const get = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const page = parseInt(req.query.page as string) || 1
@@ -39,7 +91,12 @@ export const details = async (req: Request, res: Response, next: NextFunction) =
 
 export const create = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const request: CreatePublicationRequest = req.body as CreatePublicationRequest
+    const request = buildCreatePayload(req)
+
+    if (!request.image || !request.image_og) {
+      return res.status(400).json({ errors: 'Gambar publikasi wajib diunggah' })
+    }
+
     const response = await createPublication(request)
     res.status(201).json({ data: response })
   } catch (error) {
@@ -54,7 +111,7 @@ export const update = async (req: Request, res: Response, next: NextFunction) =>
       return res.status(400).json({ errors: 'Invalid UUID format for Publication Id' })
     }
 
-    const request: UpdatePublicationRequest = req.body as UpdatePublicationRequest
+    const request = buildUpdatePayload(req)
     const response = await updatePublication(publicationId, request)
     res.status(200).json({ data: response })
   } catch (error) {

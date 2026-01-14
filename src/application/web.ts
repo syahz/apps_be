@@ -19,6 +19,7 @@ const corsOptions = {
 web.use(cors(corsOptions))
 web.use(cookieParser())
 web.use(express.json())
+web.use('/image', express.static(path.join(process.cwd(), 'image')))
 web.use(publicRouter)
 web.use(privateRouter)
 web.use(errorMiddleware)

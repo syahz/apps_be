@@ -21,6 +21,8 @@ model PublicationIdn {
   content   String           @db.LongText
   type      PublicationType
   date      DateTime
+  bannerImage String?
+  ogImage     String?
   createdAt DateTime         @default(now())
   updatedAt DateTime         @updatedAt
 
@@ -35,6 +37,8 @@ model PublicationEng {
   content   String           @db.LongText
   type      PublicationType
   date      DateTime
+  bannerImage String?
+  ogImage     String?
   createdAt DateTime         @default(now())
   updatedAt DateTime         @updatedAt
 
