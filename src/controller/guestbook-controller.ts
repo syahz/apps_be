@@ -10,6 +10,7 @@ export const create = async (req: Request, res: Response, next: NextFunction) =>
       name: req.body.name,
       origin: req.body.origin,
       purpose: req.body.purpose,
+      reason: req.body.reason,
       selfie_image: req.body.selfie_image,
       signature_image: req.body.signature_image
     }

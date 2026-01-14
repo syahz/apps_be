@@ -102,6 +102,7 @@ model GuestBook {
   name            String
   origin          String
   purpose         String
+  reason          String
   selfieImage     String
   signatureImage  String
   createdAt       DateTime @default(now())

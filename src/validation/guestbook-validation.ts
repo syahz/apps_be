@@ -12,6 +12,7 @@ export class GuestBookValidation {
     name: trimmedString('Nama', 100),
     origin: trimmedString('Asal/Instansi', 150),
     purpose: trimmedString('Tujuan', 200),
+    reason: trimmedString('Alasan', 300),
     selfie_image: z.string().min(1, 'Foto selfie wajib diunggah'),
     signature_image: z.string().min(1, 'Foto tanda tangan wajib diunggah')
   })
@@ -21,10 +22,11 @@ export class GuestBookValidation {
       name: trimmedString('Nama', 100).optional(),
       origin: trimmedString('Asal/Instansi', 150).optional(),
       purpose: trimmedString('Tujuan', 200).optional(),
+      reason: trimmedString('Alasan', 300).optional(),
       selfie_image: z.string().min(1, 'Foto selfie wajib diunggah').optional(),
       signature_image: z.string().min(1, 'Foto tanda tangan wajib diunggah').optional()
     })
-    .refine((data) => data.name || data.origin || data.purpose || data.selfie_image || data.signature_image, {
+    .refine((data) => data.name || data.origin || data.purpose || data.reason || data.selfie_image || data.signature_image, {
       message: 'Minimal satu field harus diisi untuk update'
     })
 }

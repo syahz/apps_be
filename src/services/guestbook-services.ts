@@ -22,6 +22,7 @@ export const createGuestBook = async (request: GuestBookCreateRequest): Promise<
       name: data.name,
       origin: data.origin,
       purpose: data.purpose,
+      reason: data.reason,
       selfieImage: data.selfie_image,
       signatureImage: data.signature_image
     }
@@ -72,6 +73,7 @@ export const updateGuestBook = async (id: string, request: GuestBookUpdateReques
       name: data.name ?? existing.name,
       origin: data.origin ?? existing.origin,
       purpose: data.purpose ?? existing.purpose,
+      reason: data.reason ?? existing.reason,
       selfieImage: data.selfie_image ?? existing.selfieImage,
       signatureImage: data.signature_image ?? existing.signatureImage
     }

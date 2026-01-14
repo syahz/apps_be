@@ -2,6 +2,7 @@ export type GuestBookCreateRequest = {
   name: string
   origin: string
   purpose: string
+  reason: string
   selfie_image: string
   signature_image: string
 }
@@ -10,6 +11,7 @@ export type GuestBookUpdateRequest = {
   name?: string
   origin?: string
   purpose?: string
+  reason?: string
   selfie_image?: string
   signature_image?: string
 }
@@ -19,6 +21,7 @@ export type GuestBookResponse = {
   name: string
   origin: string
   purpose: string
+  reason: string
   selfie_image: string
   signature_image: string
   created_at: Date
@@ -41,6 +44,7 @@ export function toGuestBookResponse(entity: any): GuestBookResponse {
     name: entity.name,
     origin: entity.origin,
     purpose: entity.purpose,
+    reason: entity.reason,
     selfie_image: entity.selfieImage,
     signature_image: entity.signatureImage,
     created_at: entity.createdAt,

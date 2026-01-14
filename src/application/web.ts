@@ -30,7 +30,8 @@ const corsOptions = {
 }
 web.use(cors(corsOptions))
 web.use(cookieParser())
-web.use(express.json())
+web.use(express.json({ limit: '10mb' }))
+web.use(express.urlencoded({ limit: '10mb', extended: true }))
 web.use('/image', express.static(path.join(process.cwd(), 'image')))
 web.use(publicRouter)
 web.use(privateRouter)
