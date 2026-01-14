@@ -96,6 +96,20 @@ model Unit {
   @@map("units")
 }
 
+// Guest book entries for office visitors
+model GuestBook {
+  id              String   @id @default(uuid())
+  name            String
+  origin          String
+  purpose         String
+  selfieImage     String
+  signatureImage  String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("guest_books")
+}
+
 // For Auth
 model RefreshToken {
   id         String   @id @default(uuid())
