@@ -11,8 +11,16 @@ export const web = express()
 
 web.set('trust proxy', 1)
 
+const allowedOrigins = [FRONTEND_URL, 'https://apps.bmuconnect.id', 'https://brawijayamultiusaha.co.id', 'https://guestbook.bmuconnect.id'].filter(
+  Boolean
+)
+
 const corsOptions = {
-  origin: FRONTEND_URL || 'https://hr.bmuconnect.id',
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    if (!origin) return callback(null, true) // allow non-browser or same-origin requests
+    if (allowedOrigins.includes(origin)) return callback(null, true)
+    return callback(new Error('Not allowed by CORS'))
+  },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
   credentials: true
 }
