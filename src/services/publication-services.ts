@@ -1,4 +1,4 @@
-import fs from 'fs/promises'
+﻿import fs from 'fs/promises'
 import path from 'path'
 import { PublicationType } from '@prisma/client'
 import { Validation } from '../validation/Validation'
@@ -12,12 +12,28 @@ import {
   UpdatePublicationRequest,
   toPublicationListResponse,
   SupportedPublicationLanguage,
-  PublicationCreateOrUpdateResponse
+  PublicationCreateOrUpdateResponse,
+  PublicationTranslationWithParent
 } from '../models/publication-model'
 import { logger } from '../utils/logger'
 import { PublicationValidation } from '../validation/publication-validation'
 import { translateToChinese, translateToEnglish } from '../utils/translator'
-import { buildSlugMaps, ensureCategoriesExist, generateUniqueSlug } from '../utils/publication-helpers'
+import { ensureCategoriesExist, generateUniqueSlug } from '../utils/publication-helpers'
+
+const publicationRelations = {
+  translations: true,
+  categories: { include: { category: { include: { translations: true } } } }
+}
+
+function translationNotFoundMessage(language: SupportedPublicationLanguage): string {
+  if (language === 'en') return 'Publikasi versi Bahasa Inggris belum tersedia'
+  if (language === 'zh') return 'Publikasi versi Bahasa China belum tersedia'
+  return 'Publikasi tidak ditemukan'
+}
+
+async function fetchPublicationWithRelations(publicationId: string) {
+  return prismaClient.publication.findUnique({ where: { id: publicationId }, include: publicationRelations })
+}
 
 export const getPublications = async (
   page: number,
@@ -26,377 +42,294 @@ export const getPublications = async (
   language: SupportedPublicationLanguage = 'id'
 ): Promise<PublicationListResponse> => {
   const skip = (page - 1) * limit
-  const where = search ? { title: { contains: search } } : {}
-
-  if (language === 'en') {
-    const [total, publications] = await prismaClient.$transaction([
-      prismaClient.publicationEng.count({ where }),
-      prismaClient.publicationEng.findMany({ where, skip, take: limit, orderBy: { date: 'desc' }, include: { categories: true } })
-    ])
-
-    const slugMaps = await buildSlugMaps(publications, language)
-    return toPublicationListResponse(publications, total, page, limit, language, slugMaps)
+  const where = {
+    languageCode: language,
+    ...(search ? { title: { contains: search } } : {})
   }
 
-  if (language === 'zh') {
-    const [total, publications] = await prismaClient.$transaction([
-      prismaClient.publicationChs.count({ where }),
-      prismaClient.publicationChs.findMany({ where, skip, take: limit, orderBy: { date: 'desc' }, include: { categories: true } })
-    ])
-
-    const slugMaps = await buildSlugMaps(publications, language)
-    return toPublicationListResponse(publications, total, page, limit, language, slugMaps)
-  }
-
-  const [total, publications] = await prismaClient.$transaction([
-    prismaClient.publicationIdn.count({ where }),
-    prismaClient.publicationIdn.findMany({ where, skip, take: limit, orderBy: { date: 'desc' }, include: { categories: true } })
+  const [total, translations] = await prismaClient.$transaction([
+    prismaClient.publicationTranslation.count({ where }),
+    prismaClient.publicationTranslation.findMany({
+      where,
+      skip,
+      take: limit,
+      orderBy: { publication: { date: 'desc' } },
+      include: { publication: { include: publicationRelations } }
+    })
   ])
 
-  const slugMaps = await buildSlugMaps(publications, 'id')
-  return toPublicationListResponse(publications, total, page, limit, 'id', slugMaps)
+  return toPublicationListResponse(translations as PublicationTranslationWithParent[], total, page, limit, language)
 }
 
-export const getPublicationById = async (publicationId: string, language: SupportedPublicationLanguage = 'id'): Promise<PublicationResponse> => {
-  if (language === 'id') {
-    const publication = await prismaClient.publicationIdn.findUnique({ where: { id: publicationId }, include: { categories: true } })
-    if (!publication) {
-      throw new ResponseError(404, 'Publikasi tidak ditemukan')
-    }
-    const english = await prismaClient.publicationEng.findUnique({ where: { id: publication.id }, select: { slug: true } })
-    const chinese = await prismaClient.publicationChs.findUnique({ where: { id: publication.id }, select: { slug: true } })
-    return toPublicationResponse(publication, 'id', {
-      id: publication.slug,
-      en: english?.slug ?? null,
-      zh: chinese?.slug ?? english?.slug ?? publication.slug
-    })
-  }
-
-  if (language === 'en') {
-    const publication = await prismaClient.publicationEng.findUnique({ where: { id: publicationId }, include: { categories: true } })
-    if (!publication) {
-      throw new ResponseError(404, 'Publikasi tidak ditemukan')
-    }
-    const indonesian = await prismaClient.publicationIdn.findUnique({ where: { id: publication.id }, select: { slug: true } })
-    const chinese = await prismaClient.publicationChs.findUnique({ where: { id: publication.id }, select: { slug: true } })
-    return toPublicationResponse(publication, 'en', {
-      id: indonesian?.slug ?? null,
-      en: publication.slug,
-      zh: chinese?.slug ?? publication.slug
-    })
-  }
-
-  // language === 'zh'
-  const chineseById = await prismaClient.publicationChs.findUnique({ where: { id: publicationId }, include: { categories: true } })
-  if (chineseById) {
-    const indonesian = await prismaClient.publicationIdn.findUnique({ where: { id: chineseById.id }, select: { slug: true } })
-    const english = await prismaClient.publicationEng.findUnique({ where: { id: chineseById.id }, select: { slug: true } })
-    return toPublicationResponse(chineseById, 'zh', {
-      id: indonesian?.slug ?? null,
-      en: english?.slug ?? null,
-      zh: chineseById.slug
-    })
-  }
-
-  const basePublication = await prismaClient.publicationIdn.findUnique({ where: { id: publicationId }, include: { categories: true } })
-  if (!basePublication) {
+export const getPublicationById = async (
+  publicationId: string,
+  language: SupportedPublicationLanguage = 'id'
+): Promise<PublicationResponse> => {
+  const publication = await fetchPublicationWithRelations(publicationId)
+  if (!publication) {
     throw new ResponseError(404, 'Publikasi tidak ditemukan')
   }
 
-  const chineseBySlug = await prismaClient.publicationChs.findUnique({ where: { slug: basePublication.slug }, include: { categories: true } })
-  if (!chineseBySlug) {
-    throw new ResponseError(404, 'Publikasi versi Bahasa China belum tersedia')
+  const translation = publication.translations.find((item) => item.languageCode === language)
+  if (!translation) {
+    throw new ResponseError(404, translationNotFoundMessage(language))
   }
 
-  const english = await prismaClient.publicationEng.findUnique({ where: { id: chineseBySlug.id }, select: { slug: true } })
-  return toPublicationResponse(chineseBySlug, 'zh', {
-    id: basePublication.slug,
-    en: english?.slug ?? null,
-    zh: chineseBySlug.slug
-  })
+  const translationWithParent: PublicationTranslationWithParent = { ...translation, publication }
+  return toPublicationResponse(translationWithParent, language)
 }
 
 export const getPublicationByIdForLandingPage = async (
   slugPublication: string,
   language: SupportedPublicationLanguage = 'id'
 ): Promise<PublicationResponse> => {
-  if (language === 'id') {
-    const publication = await prismaClient.publicationIdn.findUnique({ where: { slug: slugPublication }, include: { categories: true } })
-    if (!publication) {
-      throw new ResponseError(404, 'Publikasi tidak ditemukan')
-    }
-    const english =
-      (await prismaClient.publicationEng.findUnique({ where: { id: publication.id }, select: { slug: true } })) ||
-      (await prismaClient.publicationEng.findUnique({ where: { slug: slugPublication }, select: { slug: true } }))
-    const chinese =
-      (await prismaClient.publicationChs.findUnique({ where: { id: publication.id }, select: { slug: true } })) ||
-      (await prismaClient.publicationChs.findUnique({ where: { slug: slugPublication }, select: { slug: true } }))
+  const translation = (await prismaClient.publicationTranslation.findFirst({
+    where: { languageCode: language, slug: slugPublication },
+    include: { publication: { include: publicationRelations } }
+  })) as PublicationTranslationWithParent | null
 
-    return toPublicationResponse(publication, 'id', {
-      id: publication.slug,
-      en: english?.slug ?? null,
-      zh: chinese?.slug ?? english?.slug ?? publication.slug
-    })
+  if (translation) {
+    return toPublicationResponse(translation, language)
   }
 
-  if (language === 'en') {
-    const publication = await prismaClient.publicationEng.findUnique({ where: { slug: slugPublication }, include: { categories: true } })
-    if (!publication) {
-      throw new ResponseError(404, 'Publikasi versi Bahasa Inggris belum tersedia')
-    }
-    const indonesian =
-      (await prismaClient.publicationIdn.findUnique({ where: { id: publication.id }, select: { slug: true } })) ||
-      (await prismaClient.publicationIdn.findUnique({ where: { slug: slugPublication }, select: { slug: true } }))
-    const chinese =
-      (await prismaClient.publicationChs.findUnique({ where: { id: publication.id }, select: { slug: true } })) ||
-      (await prismaClient.publicationChs.findUnique({ where: { slug: slugPublication }, select: { slug: true } }))
+  const fallback = (await prismaClient.publicationTranslation.findFirst({
+    where: { slug: slugPublication },
+    include: { publication: { include: publicationRelations } }
+  })) as PublicationTranslationWithParent | null
 
-    return toPublicationResponse(publication, 'en', {
-      id: indonesian?.slug ?? null,
-      en: publication.slug,
-      zh: chinese?.slug ?? publication.slug
-    })
+  if (!fallback) {
+    throw new ResponseError(404, 'Publikasi tidak ditemukan')
   }
 
-  const publication = await prismaClient.publicationChs.findUnique({ where: { slug: slugPublication }, include: { categories: true } })
-  if (!publication) {
-    throw new ResponseError(404, 'Publikasi versi Bahasa China belum tersedia')
+  const desired = fallback.publication.translations.find((item) => item.languageCode === language)
+  if (!desired) {
+    throw new ResponseError(404, translationNotFoundMessage(language))
   }
 
-  const indonesian =
-    (await prismaClient.publicationIdn.findUnique({ where: { id: publication.id }, select: { slug: true } })) ||
-    (await prismaClient.publicationIdn.findUnique({ where: { slug: slugPublication }, select: { slug: true } }))
-  const english =
-    (await prismaClient.publicationEng.findUnique({ where: { id: publication.id }, select: { slug: true } })) ||
-    (await prismaClient.publicationEng.findUnique({ where: { slug: slugPublication }, select: { slug: true } }))
-
-  return toPublicationResponse(publication, 'zh', {
-    id: indonesian?.slug ?? null,
-    en: english?.slug ?? null,
-    zh: publication.slug
-  })
+  const desiredWithParent: PublicationTranslationWithParent = { ...desired, publication: fallback.publication }
+  return toPublicationResponse(desiredWithParent, language)
 }
 
 export const createPublication = async (request: CreatePublicationRequest): Promise<PublicationCreateOrUpdateResponse> => {
   const createRequest = Validation.validate(PublicationValidation.CREATE, request)
   const categoryIds = await ensureCategoriesExist(createRequest.category_ids)
   const type = createRequest.type as PublicationType
-  const slugIdn = await generateUniqueSlug(createRequest.title)
   const bannerImage = createRequest.image
   const ogImage = createRequest.image_og
 
+  const slugId = await generateUniqueSlug(createRequest.title, 'id')
   const translationEn = await translateToEnglish(createRequest.title, createRequest.content)
   const translationZh = await translateToChinese(createRequest.title, createRequest.content)
-  const slugEng = await generateUniqueSlug(translationEn.title, undefined, createRequest.title)
-  const slugZh = slugEng
-  const categoryConnect = categoryIds.map((id) => ({ id }))
+  const slugEn = await generateUniqueSlug(translationEn.title, 'en', undefined, createRequest.title)
+  const slugZh = await generateUniqueSlug(translationZh.title, 'zh', undefined, translationEn.title ?? createRequest.title)
 
-  const { publicationIdn, publicationEng, publicationChs } = await prismaClient.$transaction(async (tx) => {
-    const createdIdn = await tx.publicationIdn.create({
+  const createdPublication = await prismaClient.$transaction(async (tx) => {
+    const publication = await tx.publication.create({
       data: {
-        slug: slugIdn,
-        title: createRequest.title,
-        content: createRequest.content,
         type,
         date: createRequest.date,
         bannerImage,
         ogImage,
-        categories: { connect: categoryConnect }
-      },
-      include: { categories: true }
+        categories: {
+          create: categoryIds.map((categoryId) => ({ category: { connect: { id: categoryId } } }))
+        }
+      }
     })
 
-    const createdEng = await tx.publicationEng.create({
-      data: {
-        id: createdIdn.id,
-        slug: slugEng,
-        title: translationEn.title,
-        content: translationEn.content,
-        type,
-        date: createRequest.date,
-        bannerImage,
-        ogImage,
-        categories: { connect: categoryConnect }
-      },
-      include: { categories: true }
+    await tx.publicationTranslation.createMany({
+      data: [
+        {
+          publicationId: publication.id,
+          languageCode: 'id',
+          title: createRequest.title,
+          content: createRequest.content,
+          slug: slugId
+        },
+        {
+          publicationId: publication.id,
+          languageCode: 'en',
+          title: translationEn.title,
+          content: translationEn.content,
+          slug: slugEn
+        },
+        {
+          publicationId: publication.id,
+          languageCode: 'zh',
+          title: translationZh.title,
+          content: translationZh.content,
+          slug: slugZh
+        }
+      ]
     })
 
-    const createdChs = await tx.publicationChs.create({
-      data: {
-        id: createdIdn.id,
-        slug: slugZh,
-        title: translationZh.title,
-        content: translationZh.content,
-        type,
-        date: createRequest.date,
-        bannerImage,
-        ogImage,
-        categories: { connect: categoryConnect }
-      },
-      include: { categories: true }
-    })
-
-    return { publicationIdn: createdIdn, publicationEng: createdEng, publicationChs: createdChs }
+    return publication
   })
 
-  return {
-    idn: toPublicationResponse(publicationIdn, 'id', { id: publicationIdn.slug, en: publicationEng.slug, zh: publicationChs.slug }),
-    eng: toPublicationResponse(publicationEng, 'en', { id: publicationIdn.slug, en: publicationEng.slug, zh: publicationChs.slug }),
-    zh: toPublicationResponse(publicationChs, 'zh', { id: publicationIdn.slug, en: publicationEng.slug, zh: publicationChs.slug })
+  const publication = await fetchPublicationWithRelations(createdPublication.id)
+  if (!publication) {
+    throw new ResponseError(500, 'Gagal memuat data publikasi setelah dibuat')
   }
+
+  const translationId = publication.translations.find((item) => item.languageCode === 'id')
+  const translationEnSaved = publication.translations.find((item) => item.languageCode === 'en')
+  const translationZhSaved = publication.translations.find((item) => item.languageCode === 'zh')
+
+  if (!translationId || !translationEnSaved || !translationZhSaved) {
+    throw new ResponseError(500, 'Terjemahan publikasi tidak lengkap setelah proses pembuatan')
+  }
+
+  const idResponse = toPublicationResponse({ ...translationId, publication }, 'id')
+  const enResponse = toPublicationResponse({ ...translationEnSaved, publication }, 'en')
+  const zhResponse = toPublicationResponse({ ...translationZhSaved, publication }, 'zh')
+
+  return { idn: idResponse, eng: enResponse, zh: zhResponse }
 }
 
-export const updatePublication = async (publicationId: string, request: UpdatePublicationRequest): Promise<PublicationCreateOrUpdateResponse> => {
+export const updatePublication = async (
+  publicationId: string,
+  request: UpdatePublicationRequest
+): Promise<PublicationCreateOrUpdateResponse> => {
   const updateRequest = Validation.validate(PublicationValidation.UPDATE, request)
 
-  const existingIdn = await prismaClient.publicationIdn.findUnique({ where: { id: publicationId }, include: { categories: true } })
-  if (!existingIdn) {
+  const publication = await fetchPublicationWithRelations(publicationId)
+  if (!publication) {
     throw new ResponseError(404, 'Publikasi tidak ditemukan')
   }
 
   const categoryIds = updateRequest.category_ids ? await ensureCategoriesExist(updateRequest.category_ids) : undefined
-  const categorySet = categoryIds ? categoryIds.map((id) => ({ id })) : undefined
-  const fallbackCategorySet = categorySet ?? existingIdn.categories.map((category) => ({ id: category.id }))
-
-  const newSlugIdn = updateRequest.title ? await generateUniqueSlug(updateRequest.title, existingIdn.slug) : existingIdn.slug
-  const newTitle = updateRequest.title ?? existingIdn.title
-  const newContent = updateRequest.content ?? existingIdn.content
-  const newDate = updateRequest.date ?? existingIdn.date
-  const newType: PublicationType = updateRequest.type ?? existingIdn.type
-  const newBannerImage = updateRequest.image ?? existingIdn.bannerImage
-  const newOgImage = updateRequest.image_og ?? existingIdn.ogImage
+  const newType: PublicationType = updateRequest.type ?? publication.type
+  const newDate = updateRequest.date ?? publication.date
+  const newBannerImage = updateRequest.image ?? publication.bannerImage
+  const newOgImage = updateRequest.image_og ?? publication.ogImage
   const hasNewUpload = Boolean(updateRequest.image && updateRequest.image_og)
 
-  const shouldRetranslate = Boolean(updateRequest.title || updateRequest.content)
-  const englishBefore =
-    (await prismaClient.publicationEng.findUnique({ where: { id: publicationId }, include: { categories: true } })) ||
-    (await prismaClient.publicationEng.findUnique({ where: { slug: existingIdn.slug }, include: { categories: true } }))
-  const chineseBefore =
-    (await prismaClient.publicationChs.findUnique({ where: { id: publicationId }, include: { categories: true } })) ||
-    (await prismaClient.publicationChs.findUnique({ where: { slug: existingIdn.slug }, include: { categories: true } }))
+  const translationId = publication.translations.find((item) => item.languageCode === 'id')
+  const translationEn = publication.translations.find((item) => item.languageCode === 'en')
+  const translationZh = publication.translations.find((item) => item.languageCode === 'zh')
 
-  const translation = shouldRetranslate
+  const newTitle = updateRequest.title ?? translationId?.title ?? ''
+  const newContent = updateRequest.content ?? translationId?.content ?? ''
+
+  const shouldRetranslate = Boolean(updateRequest.title || updateRequest.content)
+
+  const translationEnPayload = shouldRetranslate
     ? await translateToEnglish(newTitle, newContent)
-    : englishBefore
-      ? { title: englishBefore.title, content: englishBefore.content }
+    : translationEn
+      ? { title: translationEn.title, content: translationEn.content }
       : await translateToEnglish(newTitle, newContent)
 
-  const translationZh = shouldRetranslate
+  const translationZhPayload = shouldRetranslate
     ? await translateToChinese(newTitle, newContent)
-    : chineseBefore
-      ? { title: chineseBefore.title, content: chineseBefore.content }
+    : translationZh
+      ? { title: translationZh.title, content: translationZh.content }
       : await translateToChinese(newTitle, newContent)
 
-  const newSlugEng = shouldRetranslate
-    ? await generateUniqueSlug(translation.title, englishBefore?.slug, newTitle)
-    : englishBefore
-      ? englishBefore.slug
-      : await generateUniqueSlug(translation.title, undefined, newTitle)
+  const slugId = await generateUniqueSlug(newTitle, 'id', translationId?.slug)
+  const slugEn = await generateUniqueSlug(translationEnPayload.title, 'en', translationEn?.slug, newTitle)
+  const slugZh = await generateUniqueSlug(translationZhPayload.title, 'zh', translationZh?.slug, translationEnPayload.title)
 
-  const newSlugZh = newSlugEng
-
-  const { publicationIdn, publicationEng, publicationChs } = await prismaClient.$transaction(async (tx) => {
-    const updatedIdn = await tx.publicationIdn.update({
+  await prismaClient.$transaction(async (tx) => {
+    await tx.publication.update({
       where: { id: publicationId },
       data: {
-        slug: newSlugIdn,
-        title: newTitle,
-        content: newContent,
         type: newType,
         date: newDate,
         bannerImage: newBannerImage,
-        ogImage: newOgImage,
-        ...(categorySet && { categories: { set: categorySet } })
-      },
-      include: { categories: true }
+        ogImage: newOgImage
+      }
     })
 
-    const updatedEng = englishBefore
-      ? await tx.publicationEng.update({
-          where: { id: englishBefore.id },
-          data: {
-            slug: newSlugEng,
-            title: translation.title,
-            content: translation.content,
-            type: newType,
-            date: newDate,
-            bannerImage: newBannerImage,
-            ogImage: newOgImage,
-            ...(categorySet && { categories: { set: categorySet } })
-          },
-          include: { categories: true }
+    if (categoryIds) {
+      await tx.publicationCategory.deleteMany({ where: { publicationId } })
+      if (categoryIds.length > 0) {
+        await tx.publicationCategory.createMany({
+          data: categoryIds.map((categoryId) => ({ publicationId, categoryId }))
         })
-      : await tx.publicationEng.create({
-          data: {
-            id: publicationId,
-            slug: newSlugEng,
-            title: translation.title,
-            content: translation.content,
-            type: newType,
-            date: newDate,
-            bannerImage: newBannerImage,
-            ogImage: newOgImage,
-            categories: { connect: fallbackCategorySet }
-          },
-          include: { categories: true }
-        })
+      }
+    }
 
-    const updatedChs = chineseBefore
-      ? await tx.publicationChs.update({
-          where: { id: chineseBefore.id },
-          data: {
-            slug: newSlugZh,
-            title: translationZh.title,
-            content: translationZh.content,
-            type: newType,
-            date: newDate,
-            bannerImage: newBannerImage,
-            ogImage: newOgImage,
-            ...(categorySet && { categories: { set: categorySet } })
-          },
-          include: { categories: true }
-        })
-      : await tx.publicationChs.create({
-          data: {
-            id: publicationId,
-            slug: newSlugZh,
-            title: translationZh.title,
-            content: translationZh.content,
-            type: newType,
-            date: newDate,
-            bannerImage: newBannerImage,
-            ogImage: newOgImage,
-            categories: { connect: fallbackCategorySet }
-          },
-          include: { categories: true }
-        })
+    await tx.publicationTranslation.upsert({
+      where: { publicationId_languageCode: { publicationId, languageCode: 'id' } },
+      update: {
+        title: newTitle,
+        content: newContent,
+        slug: slugId
+      },
+      create: {
+        publicationId,
+        languageCode: 'id',
+        title: newTitle,
+        content: newContent,
+        slug: slugId
+      }
+    })
 
-    return { publicationIdn: updatedIdn, publicationEng: updatedEng, publicationChs: updatedChs }
+    await tx.publicationTranslation.upsert({
+      where: { publicationId_languageCode: { publicationId, languageCode: 'en' } },
+      update: {
+        title: translationEnPayload.title,
+        content: translationEnPayload.content,
+        slug: slugEn
+      },
+      create: {
+        publicationId,
+        languageCode: 'en',
+        title: translationEnPayload.title,
+        content: translationEnPayload.content,
+        slug: slugEn
+      }
+    })
+
+    await tx.publicationTranslation.upsert({
+      where: { publicationId_languageCode: { publicationId, languageCode: 'zh' } },
+      update: {
+        title: translationZhPayload.title,
+        content: translationZhPayload.content,
+        slug: slugZh
+      },
+      create: {
+        publicationId,
+        languageCode: 'zh',
+        title: translationZhPayload.title,
+        content: translationZhPayload.content,
+        slug: slugZh
+      }
+    })
   })
 
   if (hasNewUpload) {
-    await deleteImageFiles([existingIdn.bannerImage, existingIdn.ogImage])
+    await deleteImageFiles([publication.bannerImage, publication.ogImage])
   }
 
-  return {
-    idn: toPublicationResponse(publicationIdn, 'id', { id: publicationIdn.slug, en: publicationEng.slug, zh: publicationChs.slug }),
-    eng: toPublicationResponse(publicationEng, 'en', { id: publicationIdn.slug, en: publicationEng.slug, zh: publicationChs.slug }),
-    zh: toPublicationResponse(publicationChs, 'zh', { id: publicationIdn.slug, en: publicationEng.slug, zh: publicationChs.slug })
+  const updatedPublication = await fetchPublicationWithRelations(publicationId)
+  if (!updatedPublication) {
+    throw new ResponseError(500, 'Gagal memuat data publikasi setelah pembaruan')
   }
+
+  const translationIdUpdated = updatedPublication.translations.find((item) => item.languageCode === 'id')
+  const translationEnUpdated = updatedPublication.translations.find((item) => item.languageCode === 'en')
+  const translationZhUpdated = updatedPublication.translations.find((item) => item.languageCode === 'zh')
+
+  if (!translationIdUpdated || !translationEnUpdated || !translationZhUpdated) {
+    throw new ResponseError(500, 'Terjemahan publikasi tidak lengkap setelah pembaruan')
+  }
+
+  const idResponse = toPublicationResponse({ ...translationIdUpdated, publication: updatedPublication }, 'id')
+  const enResponse = toPublicationResponse({ ...translationEnUpdated, publication: updatedPublication }, 'en')
+  const zhResponse = toPublicationResponse({ ...translationZhUpdated, publication: updatedPublication }, 'zh')
+
+  return { idn: idResponse, eng: enResponse, zh: zhResponse }
 }
 
 export const deletePublication = async (publicationId: string): Promise<{ message: string }> => {
-  const publicationIdn = await prismaClient.publicationIdn.findUnique({ where: { id: publicationId } })
-  if (!publicationIdn) {
+  const publication = await prismaClient.publication.findUnique({ where: { id: publicationId } })
+  if (!publication) {
     throw new ResponseError(404, 'Publikasi tidak ditemukan')
   }
 
-  await prismaClient.$transaction([
-    prismaClient.publicationEng.deleteMany({ where: { OR: [{ id: publicationId }, { slug: publicationIdn.slug }] } }),
-    prismaClient.publicationIdn.delete({ where: { id: publicationId } })
-  ])
+  await prismaClient.publication.delete({ where: { id: publicationId } })
 
-  await deleteImageFiles([publicationIdn.bannerImage, publicationIdn.ogImage])
+  await deleteImageFiles([publication.bannerImage, publication.ogImage])
 
   return { message: 'Publikasi berhasil dihapus' }
 }

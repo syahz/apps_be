@@ -1,4 +1,4 @@
-import { PublicationIdn, PublicationEng, PublicationChs, CategoryArticle, PublicationType } from '@prisma/client'
+import { Publication, PublicationTranslation, PublicationCategory, Category, CategoryTranslation, PublicationType } from '@prisma/client'
 
 export type SupportedPublicationLanguage = 'id' | 'en' | 'zh'
 export type PublicationKindResponse = 'news' | 'article'
@@ -66,50 +66,80 @@ export type PublicationCreateOrUpdateResponse = {
   zh: PublicationResponse
 }
 
-type PublicationWithCategories = (PublicationIdn | PublicationEng | PublicationChs) & { categories?: CategoryArticle[] }
+type PublicationCategoryWithTranslations = PublicationCategory & { category: Category & { translations: CategoryTranslation[] } }
+
+type PublicationWithRelations = Publication & {
+  translations: PublicationTranslation[]
+  categories: PublicationCategoryWithTranslations[]
+}
+
+export type PublicationTranslationWithParent = PublicationTranslation & {
+  publication: PublicationWithRelations
+}
 
 function mapPublicationType(type: PublicationType): PublicationKindResponse {
   return type === 'NEWS' ? 'news' : 'article'
 }
 
-export function toPublicationResponse(
-  publication: PublicationWithCategories,
-  language: SupportedPublicationLanguage,
-  slugMap?: PublicationSlugMap
-): PublicationResponse {
-  const categories = publication.categories ?? []
-  const resolvedSlugMap: PublicationSlugMap = {
-    id: slugMap?.id ?? (language === 'id' ? publication.slug : null),
-    en: slugMap?.en ?? (language === 'en' ? publication.slug : null),
-    zh: slugMap?.zh ?? (language === 'zh' ? publication.slug : null)
+function resolveCategoryName(translations: CategoryTranslation[], language: SupportedPublicationLanguage): string {
+  const byLang = translations.find((translation) => translation.languageCode === language)
+  if (byLang) return byLang.name
+
+  const indonesian = translations.find((translation) => translation.languageCode === 'id')
+  if (indonesian) return indonesian.name
+
+  return translations[0]?.name ?? ''
+}
+
+function buildSlugMapFromTranslations(translations: PublicationTranslation[]): PublicationSlugMap {
+  const slugMap: PublicationSlugMap = { id: null, en: null, zh: null }
+
+  for (const translation of translations) {
+    if (translation.languageCode === 'id') slugMap.id = translation.slug
+    if (translation.languageCode === 'en') slugMap.en = translation.slug
+    if (translation.languageCode === 'zh') slugMap.zh = translation.slug
   }
+
+  if (!slugMap.zh) {
+    slugMap.zh = slugMap.en ?? slugMap.id
+  }
+
+  return slugMap
+}
+
+export function toPublicationResponse(translation: PublicationTranslationWithParent, language: SupportedPublicationLanguage): PublicationResponse {
+  const publication = translation.publication
+  const slugMap = buildSlugMapFromTranslations(publication.translations)
+
   return {
     id: publication.id,
-    slug: publication.slug,
-    title: publication.title,
-    content: publication.content,
+    slug: translation.slug,
+    title: translation.title,
+    content: translation.content,
     type: mapPublicationType(publication.type),
     date: publication.date,
-    image: (publication as any).bannerImage ?? null,
-    image_og: (publication as any).ogImage ?? null,
+    image: publication.bannerImage ?? null,
+    image_og: publication.ogImage ?? null,
     created_at: publication.createdAt,
     updated_at: publication.updatedAt,
     language,
-    categories: categories.map((category) => ({ id: category.id, name: category.name })),
-    slug_map: resolvedSlugMap
+    categories: publication.categories.map((category) => ({
+      id: category.categoryId,
+      name: resolveCategoryName(category.category.translations, language)
+    })),
+    slug_map: slugMap
   }
 }
 
 export function toPublicationListResponse(
-  publications: PublicationWithCategories[],
+  translations: PublicationTranslationWithParent[],
   total: number,
   page: number,
   limit: number,
-  language: SupportedPublicationLanguage,
-  slugMaps?: Record<string, PublicationSlugMap>
+  language: SupportedPublicationLanguage
 ): PublicationListResponse {
   return {
-    publications: publications.map((publication) => toPublicationResponse(publication, language, slugMaps?.[publication.id])),
+    publications: translations.map((translation) => toPublicationResponse(translation, language)),
     pagination: {
       totalData: total,
       page,
