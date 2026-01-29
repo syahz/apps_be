@@ -1,6 +1,6 @@
-import { PublicationIdn, PublicationEng, CategoryArticle, PublicationType } from '@prisma/client'
+import { PublicationIdn, PublicationEng, PublicationChs, CategoryArticle, PublicationType } from '@prisma/client'
 
-export type SupportedPublicationLanguage = 'id' | 'en'
+export type SupportedPublicationLanguage = 'id' | 'en' | 'zh'
 export type PublicationKindResponse = 'news' | 'article'
 
 export type CreatePublicationRequest = {
@@ -28,6 +28,12 @@ export type PublicationCategoryResponse = {
   name: string
 }
 
+export type PublicationSlugMap = {
+  id: string | null
+  en: string | null
+  zh: string | null
+}
+
 export type PublicationResponse = {
   id: string
   slug: string
@@ -41,6 +47,7 @@ export type PublicationResponse = {
   updated_at: Date
   language: SupportedPublicationLanguage
   categories: PublicationCategoryResponse[]
+  slug_map: PublicationSlugMap
 }
 
 export type PublicationListResponse = {
@@ -56,16 +63,26 @@ export type PublicationListResponse = {
 export type PublicationCreateOrUpdateResponse = {
   idn: PublicationResponse
   eng: PublicationResponse
+  zh: PublicationResponse
 }
 
-type PublicationWithCategories = (PublicationIdn | PublicationEng) & { categories?: CategoryArticle[] }
+type PublicationWithCategories = (PublicationIdn | PublicationEng | PublicationChs) & { categories?: CategoryArticle[] }
 
 function mapPublicationType(type: PublicationType): PublicationKindResponse {
   return type === 'NEWS' ? 'news' : 'article'
 }
 
-export function toPublicationResponse(publication: PublicationWithCategories, language: SupportedPublicationLanguage): PublicationResponse {
+export function toPublicationResponse(
+  publication: PublicationWithCategories,
+  language: SupportedPublicationLanguage,
+  slugMap?: PublicationSlugMap
+): PublicationResponse {
   const categories = publication.categories ?? []
+  const resolvedSlugMap: PublicationSlugMap = {
+    id: slugMap?.id ?? (language === 'id' ? publication.slug : null),
+    en: slugMap?.en ?? (language === 'en' ? publication.slug : null),
+    zh: slugMap?.zh ?? (language === 'zh' ? publication.slug : null)
+  }
   return {
     id: publication.id,
     slug: publication.slug,
@@ -78,7 +95,8 @@ export function toPublicationResponse(publication: PublicationWithCategories, la
     created_at: publication.createdAt,
     updated_at: publication.updatedAt,
     language,
-    categories: categories.map((category) => ({ id: category.id, name: category.name }))
+    categories: categories.map((category) => ({ id: category.id, name: category.name })),
+    slug_map: resolvedSlugMap
   }
 }
 
@@ -87,10 +105,11 @@ export function toPublicationListResponse(
   total: number,
   page: number,
   limit: number,
-  language: SupportedPublicationLanguage
+  language: SupportedPublicationLanguage,
+  slugMaps?: Record<string, PublicationSlugMap>
 ): PublicationListResponse {
   return {
-    publications: publications.map((publication) => toPublicationResponse(publication, language)),
+    publications: publications.map((publication) => toPublicationResponse(publication, language, slugMaps?.[publication.id])),
     pagination: {
       totalData: total,
       page,

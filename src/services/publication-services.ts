@@ -1,6 +1,5 @@
 import fs from 'fs/promises'
 import path from 'path'
-import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai'
 import { PublicationType } from '@prisma/client'
 import { Validation } from '../validation/Validation'
 import { prismaClient } from '../application/database'
@@ -16,10 +15,9 @@ import {
   PublicationCreateOrUpdateResponse
 } from '../models/publication-model'
 import { logger } from '../utils/logger'
-import { GEMINI_API_KEY } from '../config'
 import { PublicationValidation } from '../validation/publication-validation'
-
-const GEMINI_MODEL_NAME = 'gemini-2.5-flash'
+import { translateToChinese, translateToEnglish } from '../utils/translator'
+import { buildSlugMaps, ensureCategoriesExist, generateUniqueSlug } from '../utils/publication-helpers'
 
 export const getPublications = async (
   page: number,
@@ -36,7 +34,18 @@ export const getPublications = async (
       prismaClient.publicationEng.findMany({ where, skip, take: limit, orderBy: { date: 'desc' }, include: { categories: true } })
     ])
 
-    return toPublicationListResponse(publications, total, page, limit, 'en')
+    const slugMaps = await buildSlugMaps(publications, language)
+    return toPublicationListResponse(publications, total, page, limit, language, slugMaps)
+  }
+
+  if (language === 'zh') {
+    const [total, publications] = await prismaClient.$transaction([
+      prismaClient.publicationChs.count({ where }),
+      prismaClient.publicationChs.findMany({ where, skip, take: limit, orderBy: { date: 'desc' }, include: { categories: true } })
+    ])
+
+    const slugMaps = await buildSlugMaps(publications, language)
+    return toPublicationListResponse(publications, total, page, limit, language, slugMaps)
   }
 
   const [total, publications] = await prismaClient.$transaction([
@@ -44,7 +53,8 @@ export const getPublications = async (
     prismaClient.publicationIdn.findMany({ where, skip, take: limit, orderBy: { date: 'desc' }, include: { categories: true } })
   ])
 
-  return toPublicationListResponse(publications, total, page, limit, 'id')
+  const slugMaps = await buildSlugMaps(publications, 'id')
+  return toPublicationListResponse(publications, total, page, limit, 'id', slugMaps)
 }
 
 export const getPublicationById = async (publicationId: string, language: SupportedPublicationLanguage = 'id'): Promise<PublicationResponse> => {
@@ -53,12 +63,39 @@ export const getPublicationById = async (publicationId: string, language: Suppor
     if (!publication) {
       throw new ResponseError(404, 'Publikasi tidak ditemukan')
     }
-    return toPublicationResponse(publication, 'id')
+    const english = await prismaClient.publicationEng.findUnique({ where: { id: publication.id }, select: { slug: true } })
+    const chinese = await prismaClient.publicationChs.findUnique({ where: { id: publication.id }, select: { slug: true } })
+    return toPublicationResponse(publication, 'id', {
+      id: publication.slug,
+      en: english?.slug ?? null,
+      zh: chinese?.slug ?? english?.slug ?? publication.slug
+    })
   }
 
-  const englishById = await prismaClient.publicationEng.findUnique({ where: { id: publicationId }, include: { categories: true } })
-  if (englishById) {
-    return toPublicationResponse(englishById, 'en')
+  if (language === 'en') {
+    const publication = await prismaClient.publicationEng.findUnique({ where: { id: publicationId }, include: { categories: true } })
+    if (!publication) {
+      throw new ResponseError(404, 'Publikasi tidak ditemukan')
+    }
+    const indonesian = await prismaClient.publicationIdn.findUnique({ where: { id: publication.id }, select: { slug: true } })
+    const chinese = await prismaClient.publicationChs.findUnique({ where: { id: publication.id }, select: { slug: true } })
+    return toPublicationResponse(publication, 'en', {
+      id: indonesian?.slug ?? null,
+      en: publication.slug,
+      zh: chinese?.slug ?? publication.slug
+    })
+  }
+
+  // language === 'zh'
+  const chineseById = await prismaClient.publicationChs.findUnique({ where: { id: publicationId }, include: { categories: true } })
+  if (chineseById) {
+    const indonesian = await prismaClient.publicationIdn.findUnique({ where: { id: chineseById.id }, select: { slug: true } })
+    const english = await prismaClient.publicationEng.findUnique({ where: { id: chineseById.id }, select: { slug: true } })
+    return toPublicationResponse(chineseById, 'zh', {
+      id: indonesian?.slug ?? null,
+      en: english?.slug ?? null,
+      zh: chineseById.slug
+    })
   }
 
   const basePublication = await prismaClient.publicationIdn.findUnique({ where: { id: publicationId }, include: { categories: true } })
@@ -66,12 +103,17 @@ export const getPublicationById = async (publicationId: string, language: Suppor
     throw new ResponseError(404, 'Publikasi tidak ditemukan')
   }
 
-  const englishBySlug = await prismaClient.publicationEng.findUnique({ where: { slug: basePublication.slug }, include: { categories: true } })
-  if (!englishBySlug) {
-    throw new ResponseError(404, 'Publikasi versi Bahasa Inggris belum tersedia')
+  const chineseBySlug = await prismaClient.publicationChs.findUnique({ where: { slug: basePublication.slug }, include: { categories: true } })
+  if (!chineseBySlug) {
+    throw new ResponseError(404, 'Publikasi versi Bahasa China belum tersedia')
   }
 
-  return toPublicationResponse(englishBySlug, 'en')
+  const english = await prismaClient.publicationEng.findUnique({ where: { id: chineseBySlug.id }, select: { slug: true } })
+  return toPublicationResponse(chineseBySlug, 'zh', {
+    id: basePublication.slug,
+    en: english?.slug ?? null,
+    zh: chineseBySlug.slug
+  })
 }
 
 export const getPublicationByIdForLandingPage = async (
@@ -83,14 +125,56 @@ export const getPublicationByIdForLandingPage = async (
     if (!publication) {
       throw new ResponseError(404, 'Publikasi tidak ditemukan')
     }
-    return toPublicationResponse(publication, 'id')
-  } else {
+    const english =
+      (await prismaClient.publicationEng.findUnique({ where: { id: publication.id }, select: { slug: true } })) ||
+      (await prismaClient.publicationEng.findUnique({ where: { slug: slugPublication }, select: { slug: true } }))
+    const chinese =
+      (await prismaClient.publicationChs.findUnique({ where: { id: publication.id }, select: { slug: true } })) ||
+      (await prismaClient.publicationChs.findUnique({ where: { slug: slugPublication }, select: { slug: true } }))
+
+    return toPublicationResponse(publication, 'id', {
+      id: publication.slug,
+      en: english?.slug ?? null,
+      zh: chinese?.slug ?? english?.slug ?? publication.slug
+    })
+  }
+
+  if (language === 'en') {
     const publication = await prismaClient.publicationEng.findUnique({ where: { slug: slugPublication }, include: { categories: true } })
     if (!publication) {
       throw new ResponseError(404, 'Publikasi versi Bahasa Inggris belum tersedia')
     }
-    return toPublicationResponse(publication, 'en')
+    const indonesian =
+      (await prismaClient.publicationIdn.findUnique({ where: { id: publication.id }, select: { slug: true } })) ||
+      (await prismaClient.publicationIdn.findUnique({ where: { slug: slugPublication }, select: { slug: true } }))
+    const chinese =
+      (await prismaClient.publicationChs.findUnique({ where: { id: publication.id }, select: { slug: true } })) ||
+      (await prismaClient.publicationChs.findUnique({ where: { slug: slugPublication }, select: { slug: true } }))
+
+    return toPublicationResponse(publication, 'en', {
+      id: indonesian?.slug ?? null,
+      en: publication.slug,
+      zh: chinese?.slug ?? publication.slug
+    })
   }
+
+  const publication = await prismaClient.publicationChs.findUnique({ where: { slug: slugPublication }, include: { categories: true } })
+  if (!publication) {
+    throw new ResponseError(404, 'Publikasi versi Bahasa China belum tersedia')
+  }
+
+  const indonesian =
+    (await prismaClient.publicationIdn.findUnique({ where: { id: publication.id }, select: { slug: true } })) ||
+    (await prismaClient.publicationIdn.findUnique({ where: { slug: slugPublication }, select: { slug: true } }))
+  const english =
+    (await prismaClient.publicationEng.findUnique({ where: { id: publication.id }, select: { slug: true } })) ||
+    (await prismaClient.publicationEng.findUnique({ where: { slug: slugPublication }, select: { slug: true } }))
+
+  return toPublicationResponse(publication, 'zh', {
+    id: indonesian?.slug ?? null,
+    en: english?.slug ?? null,
+    zh: publication.slug
+  })
 }
 
 export const createPublication = async (request: CreatePublicationRequest): Promise<PublicationCreateOrUpdateResponse> => {
@@ -101,11 +185,13 @@ export const createPublication = async (request: CreatePublicationRequest): Prom
   const bannerImage = createRequest.image
   const ogImage = createRequest.image_og
 
-  const translation = await translateToEnglish(createRequest.title, createRequest.content)
-  const slugEng = await generateUniqueSlug(translation.title)
+  const translationEn = await translateToEnglish(createRequest.title, createRequest.content)
+  const translationZh = await translateToChinese(createRequest.title, createRequest.content)
+  const slugEng = await generateUniqueSlug(translationEn.title)
+  const slugZh = await generateUniqueSlug(translationZh.title)
   const categoryConnect = categoryIds.map((id) => ({ id }))
 
-  const { publicationIdn, publicationEng } = await prismaClient.$transaction(async (tx) => {
+  const { publicationIdn, publicationEng, publicationChs } = await prismaClient.$transaction(async (tx) => {
     const createdIdn = await tx.publicationIdn.create({
       data: {
         slug: slugIdn,
@@ -124,8 +210,8 @@ export const createPublication = async (request: CreatePublicationRequest): Prom
       data: {
         id: createdIdn.id,
         slug: slugEng,
-        title: translation.title,
-        content: translation.content,
+        title: translationEn.title,
+        content: translationEn.content,
         type,
         date: createRequest.date,
         bannerImage,
@@ -135,12 +221,28 @@ export const createPublication = async (request: CreatePublicationRequest): Prom
       include: { categories: true }
     })
 
-    return { publicationIdn: createdIdn, publicationEng: createdEng }
+    const createdChs = await tx.publicationChs.create({
+      data: {
+        id: createdIdn.id,
+        slug: slugZh,
+        title: translationZh.title,
+        content: translationZh.content,
+        type,
+        date: createRequest.date,
+        bannerImage,
+        ogImage,
+        categories: { connect: categoryConnect }
+      },
+      include: { categories: true }
+    })
+
+    return { publicationIdn: createdIdn, publicationEng: createdEng, publicationChs: createdChs }
   })
 
   return {
-    idn: toPublicationResponse(publicationIdn, 'id'),
-    eng: toPublicationResponse(publicationEng, 'en')
+    idn: toPublicationResponse(publicationIdn, 'id', { id: publicationIdn.slug, en: publicationEng.slug, zh: publicationChs.slug }),
+    eng: toPublicationResponse(publicationEng, 'en', { id: publicationIdn.slug, en: publicationEng.slug, zh: publicationChs.slug }),
+    zh: toPublicationResponse(publicationChs, 'zh', { id: publicationIdn.slug, en: publicationEng.slug, zh: publicationChs.slug })
   }
 }
 
@@ -169,20 +271,35 @@ export const updatePublication = async (publicationId: string, request: UpdatePu
   const englishBefore =
     (await prismaClient.publicationEng.findUnique({ where: { id: publicationId }, include: { categories: true } })) ||
     (await prismaClient.publicationEng.findUnique({ where: { slug: existingIdn.slug }, include: { categories: true } }))
+  const chineseBefore =
+    (await prismaClient.publicationChs.findUnique({ where: { id: publicationId }, include: { categories: true } })) ||
+    (await prismaClient.publicationChs.findUnique({ where: { slug: existingIdn.slug }, include: { categories: true } }))
 
   const translation = shouldRetranslate
     ? await translateToEnglish(newTitle, newContent)
     : englishBefore
-    ? { title: englishBefore.title, content: englishBefore.content }
-    : await translateToEnglish(newTitle, newContent)
+      ? { title: englishBefore.title, content: englishBefore.content }
+      : await translateToEnglish(newTitle, newContent)
+
+  const translationZh = shouldRetranslate
+    ? await translateToChinese(newTitle, newContent)
+    : chineseBefore
+      ? { title: chineseBefore.title, content: chineseBefore.content }
+      : await translateToChinese(newTitle, newContent)
 
   const newSlugEng = shouldRetranslate
     ? await generateUniqueSlug(translation.title, englishBefore?.slug)
     : englishBefore
-    ? englishBefore.slug
-    : await generateUniqueSlug(translation.title)
+      ? englishBefore.slug
+      : await generateUniqueSlug(translation.title)
 
-  const { publicationIdn, publicationEng } = await prismaClient.$transaction(async (tx) => {
+  const newSlugZh = shouldRetranslate
+    ? await generateUniqueSlug(translationZh.title, chineseBefore?.slug)
+    : chineseBefore
+      ? chineseBefore.slug
+      : await generateUniqueSlug(translationZh.title)
+
+  const { publicationIdn, publicationEng, publicationChs } = await prismaClient.$transaction(async (tx) => {
     const updatedIdn = await tx.publicationIdn.update({
       where: { id: publicationId },
       data: {
@@ -228,7 +345,37 @@ export const updatePublication = async (publicationId: string, request: UpdatePu
           include: { categories: true }
         })
 
-    return { publicationIdn: updatedIdn, publicationEng: updatedEng }
+    const updatedChs = chineseBefore
+      ? await tx.publicationChs.update({
+          where: { id: chineseBefore.id },
+          data: {
+            slug: newSlugZh,
+            title: translationZh.title,
+            content: translationZh.content,
+            type: newType,
+            date: newDate,
+            bannerImage: newBannerImage,
+            ogImage: newOgImage,
+            ...(categorySet && { categories: { set: categorySet } })
+          },
+          include: { categories: true }
+        })
+      : await tx.publicationChs.create({
+          data: {
+            id: publicationId,
+            slug: newSlugZh,
+            title: translationZh.title,
+            content: translationZh.content,
+            type: newType,
+            date: newDate,
+            bannerImage: newBannerImage,
+            ogImage: newOgImage,
+            categories: { connect: fallbackCategorySet }
+          },
+          include: { categories: true }
+        })
+
+    return { publicationIdn: updatedIdn, publicationEng: updatedEng, publicationChs: updatedChs }
   })
 
   if (hasNewUpload) {
@@ -236,8 +383,9 @@ export const updatePublication = async (publicationId: string, request: UpdatePu
   }
 
   return {
-    idn: toPublicationResponse(publicationIdn, 'id'),
-    eng: toPublicationResponse(publicationEng, 'en')
+    idn: toPublicationResponse(publicationIdn, 'id', { id: publicationIdn.slug, en: publicationEng.slug, zh: publicationChs.slug }),
+    eng: toPublicationResponse(publicationEng, 'en', { id: publicationIdn.slug, en: publicationEng.slug, zh: publicationChs.slug }),
+    zh: toPublicationResponse(publicationChs, 'zh', { id: publicationIdn.slug, en: publicationEng.slug, zh: publicationChs.slug })
   }
 }
 
@@ -255,149 +403,6 @@ export const deletePublication = async (publicationId: string): Promise<{ messag
   await deleteImageFiles([publicationIdn.bannerImage, publicationIdn.ogImage])
 
   return { message: 'Publikasi berhasil dihapus' }
-}
-
-function slugify(text: string): string {
-  const normalized = text
-    .normalize('NFD')
-    .replace(/[^\w\s-]/g, '')
-    .replace(/[\u0300-\u036f]/g, '')
-  const slug = normalized
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/[^a-z0-9-]/g, '')
-    .replace(/^-+|-+$/g, '')
-  return slug || 'publikasi'
-}
-
-function normalizeCategoryIds(categoryIds: string[]): string[] {
-  return Array.from(new Set(categoryIds))
-}
-
-async function ensureCategoriesExist(categoryIds: string[]): Promise<string[]> {
-  const uniqueIds = normalizeCategoryIds(categoryIds)
-  if (uniqueIds.length === 0) {
-    throw new ResponseError(400, 'Minimal satu kategori harus dipilih')
-  }
-
-  const categories = await prismaClient.categoryArticle.findMany({ where: { id: { in: uniqueIds } } })
-  if (categories.length !== uniqueIds.length) {
-    throw new ResponseError(400, 'Beberapa kategori tidak valid atau belum terdaftar')
-  }
-
-  return uniqueIds
-}
-
-async function isSlugTaken(slug: string, currentSlug?: string): Promise<boolean> {
-  if (currentSlug && slug === currentSlug) {
-    return false
-  }
-
-  const [idn, eng] = await prismaClient.$transaction([
-    prismaClient.publicationIdn.findUnique({ where: { slug } }),
-    prismaClient.publicationEng.findUnique({ where: { slug } })
-  ])
-
-  return Boolean(idn || eng)
-}
-
-async function generateUniqueSlug(title: string, currentSlug?: string): Promise<string> {
-  const baseSlug = slugify(title)
-  let slug = baseSlug
-  let counter = 1
-
-  while (await isSlugTaken(slug, currentSlug)) {
-    slug = `${baseSlug}-${counter}`
-    counter += 1
-  }
-
-  return slug
-}
-
-function parseGeminiJson(text: string) {
-  try {
-    return JSON.parse(text)
-  } catch (e) {
-    const cleanText = text
-      .replace(/^```json\s*/, '')
-      .replace(/^```\s*/, '')
-      .replace(/\s*```$/, '')
-      .trim()
-
-    return JSON.parse(cleanText)
-  }
-}
-
-async function translateToEnglish(title: string, content: string): Promise<{ title: string; content: string }> {
-  if (!GEMINI_API_KEY) {
-    logger.error('GEMINI_API_KEY is missing in environment variables')
-    throw new ResponseError(500, 'Konfigurasi Server Error (API Key)')
-  }
-
-  try {
-    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY)
-
-    const model = genAI.getGenerativeModel({
-      model: GEMINI_MODEL_NAME,
-      generationConfig: {
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: SchemaType.OBJECT,
-          properties: {
-            title: { type: SchemaType.STRING },
-            content: { type: SchemaType.STRING }
-          },
-          required: ['title', 'content']
-        }
-      }
-    })
-
-    const prompt = `
-      You are a professional translator and editor for a news portal.
-      Translate the following Indonesian article to English with a professional, neutral newsroom tone.
-
-      Rules:
-      1. Preserve all HTML tags (<p>, <b>, etc.) and structure exactly. Translate only the visible text content inside tags.
-      2. Do not add commentary.
-      3. Return valid JSON exactly matching this structure:
-      {
-        "title": "Translated Title string",
-        "content": "Translated HTML content string"
-      }
-
-      Input Data:
-      Title: ${title}
-      Content: ${content}
-    `
-
-    const result = await model.generateContent(prompt)
-    const response = await result.response
-    const text = response.text()
-
-    if (!text) {
-      throw new Error('Respons Gemini kosong')
-    }
-
-    const parsed = parseGeminiJson(text)
-
-    if (!parsed.title || !parsed.content) {
-      logger.warn('Gemini response format invalid:', parsed)
-      throw new Error('Respons Gemini tidak memiliki field title/content')
-    }
-
-    return { title: parsed.title, content: parsed.content }
-  } catch (error: any) {
-    logger.error('Translate publication gagal (Gemini)', {
-      message: error?.message,
-      modelUsed: GEMINI_MODEL_NAME,
-      keyConfigured: !!GEMINI_API_KEY,
-      rawResponse: error?.response
-    })
-
-    throw new ResponseError(502, `Gagal menerjemahkan publikasi: ${error?.message}`)
-  }
 }
 
 async function deleteImageFiles(filePaths: Array<string | null | undefined>) {

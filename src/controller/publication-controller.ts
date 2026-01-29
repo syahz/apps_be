@@ -12,7 +12,9 @@ import {
 const uuidRegex = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/
 
 function parseLanguage(lang?: string): SupportedPublicationLanguage {
-  return lang === 'en' ? 'en' : 'id'
+  if (lang === 'en') return 'en'
+  if (lang === 'zh') return 'zh'
+  return 'id'
 }
 
 function parseCategoryIds(input: unknown): string[] | undefined {

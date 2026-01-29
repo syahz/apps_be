@@ -46,12 +46,29 @@ model PublicationEng {
   @@map("publications_eng")
 }
 
+model PublicationChs {
+  id        String           @id @default(uuid())
+  slug      String           @unique
+  title     String
+  content   String           @db.LongText
+  type      PublicationType
+  date      DateTime
+  bannerImage String?
+  ogImage     String?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  categories CategoryArticle[] @relation("PublicationChsCategories")
+  @@map("publications_chs")
+}
+
 model CategoryArticle {
   id   String @id @default(uuid())
   name String @unique
 
   publicationsIdn PublicationIdn[] @relation("PublicationIdnCategories")
   publicationsEng PublicationEng[] @relation("PublicationEngCategories")
+  publicationsChs PublicationChs[] @relation("PublicationChsCategories")
   @@map("category_articles")
 }
 
