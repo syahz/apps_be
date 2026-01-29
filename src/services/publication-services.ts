@@ -187,8 +187,8 @@ export const createPublication = async (request: CreatePublicationRequest): Prom
 
   const translationEn = await translateToEnglish(createRequest.title, createRequest.content)
   const translationZh = await translateToChinese(createRequest.title, createRequest.content)
-  const slugEng = await generateUniqueSlug(translationEn.title)
-  const slugZh = await generateUniqueSlug(translationZh.title)
+  const slugEng = await generateUniqueSlug(translationEn.title, undefined, createRequest.title)
+  const slugZh = await generateUniqueSlug(translationZh.title, undefined, translationEn.title)
   const categoryConnect = categoryIds.map((id) => ({ id }))
 
   const { publicationIdn, publicationEng, publicationChs } = await prismaClient.$transaction(async (tx) => {
@@ -288,16 +288,16 @@ export const updatePublication = async (publicationId: string, request: UpdatePu
       : await translateToChinese(newTitle, newContent)
 
   const newSlugEng = shouldRetranslate
-    ? await generateUniqueSlug(translation.title, englishBefore?.slug)
+    ? await generateUniqueSlug(translation.title, englishBefore?.slug, newTitle)
     : englishBefore
       ? englishBefore.slug
-      : await generateUniqueSlug(translation.title)
+      : await generateUniqueSlug(translation.title, undefined, newTitle)
 
   const newSlugZh = shouldRetranslate
-    ? await generateUniqueSlug(translationZh.title, chineseBefore?.slug)
+    ? await generateUniqueSlug(translationZh.title, chineseBefore?.slug, translation.title)
     : chineseBefore
       ? chineseBefore.slug
-      : await generateUniqueSlug(translationZh.title)
+      : await generateUniqueSlug(translationZh.title, undefined, translation.title)
 
   const { publicationIdn, publicationEng, publicationChs } = await prismaClient.$transaction(async (tx) => {
     const updatedIdn = await tx.publicationIdn.update({

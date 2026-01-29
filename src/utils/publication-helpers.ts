@@ -51,8 +51,14 @@ export async function isSlugTaken(slug: string, currentSlug?: string): Promise<b
   return Boolean(idn || eng || chs)
 }
 
-export async function generateUniqueSlug(title: string, currentSlug?: string): Promise<string> {
-  const baseSlug = slugify(title)
+export async function generateUniqueSlug(title: string, currentSlug?: string, fallbackTitle?: string): Promise<string> {
+  let baseSlug = slugify(title)
+
+  if ((baseSlug === 'publikasi' || !baseSlug) && fallbackTitle) {
+    const fallbackSlug = slugify(fallbackTitle)
+    baseSlug = fallbackSlug || baseSlug
+  }
+
   let slug = baseSlug
   let counter = 1
 
